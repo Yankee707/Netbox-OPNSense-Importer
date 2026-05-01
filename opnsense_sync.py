@@ -101,30 +101,23 @@ class OPNsenseSyncScript(Script):
 
     def get_opnsense_interfaces(self):
         try:
-            resp_names = self.sess.get(f"{self.opnsense_url}/api/diagnostics/interface/getInterfaceNames")
+            resp_names = self.sess.get(f"{self.opnsense_url}/api/diagnostics/interface/get_interface_names")
             resp_names.raise_for_status()
             names_map = resp_names.json()
 
-            stats_url = f"{self.opnsense_url}/api/diagnostics/interface/getInterfaceStats"
-            resp_stats = self.sess.get(stats_url)
-            
             stats_map = {}
-            if resp_stats.status_code == 200:
-                stats_map = resp_stats.json()
-            
-            if not stats_map:
-                self.log_info("Stats map empty. Trying getInterfaceConfig...")
-                config_url = f"{self.opnsense_url}/api/diagnostics/interface/getInterfaceConfig"
-                try:
-                    resp_config = self.sess.get(config_url)
-                    if resp_config.status_code == 200:
-                        data = resp_config.json()
-                        if isinstance(data, dict) and 'rows' in data:
-                            stats_map = {row.get('identifier'): row for row in data['rows']}
-                        else:
-                            stats_map = data
-                except Exception as e:
-                    self.log_warning(f"getInterfaceConfig failed: {e}")
+            self.log_info("Fetching interface details via get_interface_config...")
+            config_url = f"{self.opnsense_url}/api/diagnostics/interface/get_interface_config"
+            try:
+                resp_config = self.sess.get(config_url)
+                if resp_config.status_code == 200:
+                    data = resp_config.json()
+                    if isinstance(data, dict) and 'rows' in data:
+                        stats_map = {row.get('identifier'): row for row in data['rows']}
+                    else:
+                        stats_map = data
+            except Exception as e:
+                self.log_warning(f"get_interface_config failed: {e}")
 
             stats_by_device = {}
             for key, val in stats_map.items():
@@ -207,10 +200,10 @@ class OPNsenseSyncScript(Script):
 
     def get_wireguard_clients(self):
         try:
-            resp = self.sess.get(f"{self.opnsense_url}/api/wireguard/client/searchClient")
+            resp = self.sess.get(f"{self.opnsense_url}/api/wireguard/client/search_client")
             if resp.status_code == 200:
                 return resp.json().get('rows', [])
-            resp = self.sess.get(f"{self.opnsense_url}/api/wireguard/server/searchServer")
+            resp = self.sess.get(f"{self.opnsense_url}/api/wireguard/server/search_server")
             if resp.status_code == 200:
                 return resp.json().get('rows', [])
         except Exception as e:
@@ -219,7 +212,7 @@ class OPNsenseSyncScript(Script):
 
     def get_opnsense_arp(self):
         try:
-            resp = self.sess.get(f"{self.opnsense_url}/api/diagnostics/interface/getArp")
+            resp = self.sess.get(f"{self.opnsense_url}/api/diagnostics/interface/get_arp")
             resp.raise_for_status()
             return resp.json()
         except Exception as e:
